@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AP Stats Pacing Calendar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: one narrow column. Today first, then upcoming assessments, then units as collapsible blocks with A/B dates on one line per lesson. */
+:root {
+  --bg: #f3f7fb;
+  --surface: #ffffff;
+  --surface-2: #e8f0f7;
+  --ink: #0f2638;
+  --muted: #5a6f80;
+  --line: #d3e0ec;
+  --blue: #4b9cd3;        /* Carolina blue */
+  --blue-ink: #1c679e;    /* readable blue for text */
+  --blue-tint: #dcecf8;
+  --orange: #f56600;      /* Clemson orange */
+  --orange-ink: #b84a00;
+  --orange-tint: #fde8d9;
+  --test: #b3261e; --test-tint: #fbe3e1;
+  --quiz: #7a4fb0; --quiz-tint: #eee6f8;
+  --review: #1f7a55; --review-tint: #dff2e8;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1620; --surface: #122230; --surface-2: #182d3e; --ink: #e5eef6; --muted: #93a8b9; --line: #23394b;
+    --blue: #6db3e6; --blue-ink: #8cc6ef; --blue-tint: #183a55;
+    --orange: #ff8a3d; --orange-ink: #ffa366; --orange-tint: #43260f;
+    --test: #ff8a80; --test-tint: #431c1a; --quiz: #c9a6f5; --quiz-tint: #2f2342; --review: #7fd6aa; --review-tint: #163a2a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1620; --surface: #122230; --surface-2: #182d3e; --ink: #e5eef6; --muted: #93a8b9; --line: #23394b;
+  --blue: #6db3e6; --blue-ink: #8cc6ef; --blue-tint: #183a55;
+  --orange: #ff8a3d; --orange-ink: #ffa366; --orange-tint: #43260f;
+  --test: #ff8a80; --test-tint: #431c1a; --quiz: #c9a6f5; --quiz-tint: #2f2342; --review: #7fd6aa; --review-tint: #163a2a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.45; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 0 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 28px; }
+
+/* Header */
+.top { padding-top: 28px; display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--blue-ink); }
+h1 { font-family: var(--font-display); font-stretch: 80%; font-weight: 900; font-size: clamp(34px, 7vw, 48px); line-height: .98; margin: 0; text-wrap: balance; }
+h1 span { color: var(--orange); }
+.picker { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.picker-label { font-weight: 700; color: var(--muted); font-size: 14px; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 4px; gap: 2px; }
+.seg button { font: inherit; font-weight: 700; font-size: 15px; border: 0; background: transparent; color: var(--ink); padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--blue); color: #fff; }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { color: #08131c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button[aria-pressed="true"] { color: #08131c; } }
+button:focus-visible, summary:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+h2 { font-family: var(--font-display); font-stretch: 85%; font-weight: 800; font-size: 22px; margin: 0 0 12px; }
+
+/* Today */
+.today { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.today-date { font-family: var(--font-display); font-weight: 800; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.today-date b { color: var(--orange-ink); }
+.next-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.next { background: var(--surface-2); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.next.is-today { background: var(--orange-tint); }
+.next-head { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); font-weight: 700; }
+.daybadge { font-family: var(--font-display); font-weight: 900; font-size: 14px; width: 28px; height: 28px; border-radius: 8px; display: inline-grid; place-items: center; background: var(--blue); color: #fff; flex: none; }
+.daybadge.b { background: var(--orange); }
+.next-topic { font-size: 19px; font-weight: 700; line-height: 1.25; }
+.next-code { font-family: var(--font-display); font-weight: 800; color: var(--blue-ink); margin-right: 6px; }
+.sub { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.sub li { font-size: 16px; }
+
+/* Upcoming assessments */
+.assess { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.assess li { display: grid; grid-template-columns: 112px 1fr; gap: 12px; align-items: baseline; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.assess .when { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 15px; }
+.assess .what { min-width: 0; }
+.empty { color: var(--muted); font-style: italic; }
+
+/* Tags */
+.tag { display: inline-block; font-family: var(--font-display); font-weight: 800; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; vertical-align: 2px; margin-left: 6px; white-space: nowrap; }
+.tag.test, .tag.midterm, .tag.ap { background: var(--test-tint); color: var(--test); }
+.tag.quiz { background: var(--quiz-tint); color: var(--quiz); }
+.tag.project { background: var(--orange-tint); color: var(--orange-ink); }
+.tag.review { background: var(--review-tint); color: var(--review); }
+.tag.flex, .tag.exams { background: var(--surface-2); color: var(--muted); }
+.tag.now { background: var(--orange); color: #fff; }
+.tag.er { background: var(--blue-tint); color: var(--blue-ink); }
+
+/* Units */
+.units { display: flex; flex-direction: column; gap: 10px; }
+details.unit { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+details.unit[open] { border-color: var(--blue); }
+summary { list-style: none; cursor: pointer; padding: 14px 16px; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+summary::-webkit-details-marker { display: none; }
+.ucode { font-family: var(--font-display); font-stretch: 75%; font-weight: 900; font-size: 26px; min-width: 52px; text-align: center; padding: 4px 6px; border-radius: 8px; background: var(--blue-tint); color: var(--blue-ink); line-height: 1.1; }
+.unit.special .ucode { font-size: 15px; letter-spacing: .04em; }
+.unit.done .ucode { background: var(--surface-2); color: var(--muted); }
+.unit.current .ucode { background: var(--orange); color: #fff; }
+.utitle { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.utitle strong { font-family: var(--font-display); font-stretch: 90%; font-weight: 800; font-size: 18px; line-height: 1.2; text-wrap: balance; }
+.utitle small { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.chev { width: 22px; height: 22px; transition: transform .2s; color: var(--muted); }
+details[open] .chev { transform: rotate(180deg); }
+.bar { height: 5px; background: var(--surface-2); border-radius: 99px; overflow: hidden; margin-top: 6px; max-width: 220px; }
+.bar i { display: block; height: 100%; background: var(--blue); border-radius: 99px; }
+
+.rows { list-style: none; margin: 0; padding: 0 8px 8px; display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: 150px 1fr; gap: 14px; padding: 11px 8px; border-top: 1px solid var(--line); align-items: start; }
+.row.past { color: var(--muted); }
+.row.past .lcode { color: var(--muted); }
+.row.now { background: var(--orange-tint); border-radius: 8px; border-top-color: transparent; }
+.row.off { color: var(--muted); }
+.row.off .topic { font-style: italic; }
+.dates { display: flex; flex-direction: column; gap: 3px; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.d { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.d .daybadge { width: 20px; height: 20px; font-size: 11.5px; border-radius: 5px; }
+.row.past .d .daybadge { background: var(--line); color: var(--muted); }
+.topic { min-width: 0; font-weight: 700; }
+.lcode { font-family: var(--font-display); font-weight: 800; color: var(--blue-ink); margin-right: 6px; }
+.check { color: var(--review); margin-right: 4px; }
+
+.notes { font-size: 14px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+.notes p { margin: 0; }
+.foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+
+@media (max-width: 520px) {
+  .row { grid-template-columns: 1fr; gap: 4px; }
+  .dates { flex-direction: row; flex-wrap: wrap; gap: 4px 14px; }
+  .assess li { grid-template-columns: 1fr; gap: 2px; }
+  summary { gap: 10px; padding: 12px; }
+  .ucode { min-width: 44px; font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Ballantyne Ridge Wolves · 2026–27</div>
+    <h1>AP Stats <span>Pacing</span> Calendar</h1>
+    <div class="picker">
+      <span class="picker-label" id="pick-label">My class meets on</span>
+      <div class="seg" role="group" aria-labelledby="pick-label">
+        <button type="button" id="pick-A" data-pick="A">A days</button>
+        <button type="button" id="pick-B" data-pick="B">B days</button>
+        <button type="button" id="pick-both" data-pick="both">Show both</button>
+      </div>
+    </div>
+  </header>
+
+  <section aria-labelledby="today-h">
+    <h2 id="today-h">Today</h2>
+    <div class="today" id="today"></div>
+  </section>
+
+  <section aria-labelledby="assess-h">
+    <h2 id="assess-h">Coming up: quizzes, tests &amp; exams</h2>
+    <ul class="assess" id="assess"></ul>
+  </section>
+
+  <section aria-labelledby="units-h">
+    <h2 id="units-h">Full year by unit</h2>
+    <div class="units" id="units"></div>
+  </section>
+
+  <section class="notes" id="notes"></section>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+/* ===== SETTINGS =====
+   SHEET_CSV_URL: paste the "Publish to web" CSV link for the BR Calendar tab here.
+   When it is set (and the page is on GitHub Pages or similar), the page reads the
+   Google Sheet every time a student opens it. If it is blank or can't be reached,
+   the page uses the copy saved below. */
+const SHEET_CSV_URL = "";
+const SCHOOL_YEAR_START = 2026;   // Aug–Dec dates use this year; Jan–Jul use the next
+
+const UNIT_NAMES = {
+  "1A": "Exploring One-Variable Data",
+  "1B": "Collecting Data",
+  "2A": "Probability",
+  "2B": "Random Variables & Probability Distributions",
+  "3A": "Proportions: Sampling Distributions & Confidence Intervals",
+  "3B": "Proportions: Hypothesis Tests & Chi-Square",
+  "4":  "Inference for Means",
+  "5":  "Regression Analysis",
+  "MID": "Midterm Review & Exams",
+  "AP": "AP Exam Review & AP Exam",
+  "END": "After the AP Exam"
+};
+const SPECIAL_LABEL = { MID: "MID", AP: "AP", END: "END" };
+
+/* Saved copy of the sheet (quarter | date | day | topic). Updated 11/24/2026. */
+const SAVED = `
+1|8/25|A|Intro - Can Joy Smell Parkinson's Disease?
+1|8/26|B|Intro - Can Joy Smell Parkinson's Disease?
+1|8/27|A|1A.1 Statistical Studies
+1|8/28|B|1A.1 Statistical Studies
+1|8/31|A|1A.2 Analyzing and Displaying Categorical
+1|9/1|B|1A.2 Analyzing and Displaying Categorical
+1|9/2|A|1A.3 Describing Quant. & Measuring Var.
+1|9/3|B|1A.3 Describing Quant. & Measuring Var.
+1|9/4|A|1A.4 Comparing Quant. Data
+1|9/7|HOL|Labor Day
+1|9/8|B|1A.4 Comparing Quant. Data
+1|9/9|A|1A.5 Quiz + Location in a Distribution
+1|9/10|B|1A.5 Quiz + Location in a Distribution
+1|9/11|A|1A.6 Transformations of Quant. Data
+1|9/14|B|1A.6 Transformations of Quant. Data
+1|9/15|A|1A.7 Review
+1|9/16|B|1A.7 Review
+1|9/17|A|1A.8 Test
+1|9/18|B|1A.8 Test
+1|9/21|TWD|
+1|9/22|A|1B.1 Sampling: SRS and Stratified
+1|9/23|B|1B.1 Sampling: SRS and Stratified
+1|9/24|A|1B.2 Sampling: Cluster, Systematic, Problems
+1|9/25|B|1B.2 Sampling: Cluster, Systematic, Problems
+1|9/28|A|1B.3 Quiz + Obs. Studies and Experiments
+1|9/29|B|1B.3 Quiz + Obs. Studies and Experiments
+1|9/30|A|1B.4 Experimental Design and Selection
+1|10/1|B|1B.4 Experimental Design and Selection
+1|10/2|TWD|
+1|10/5|A|1B.5 Inference and Experiments; Scope of Inf.
+1|10/6|B|1B.5 Inference and Experiments; Scope of Inf.
+1|10/7|A|1B.6 Review
+1|10/8|B|1B.6 Review
+1|10/9|A|1B.7 Test
+1|10/12|B|1B.7 Test
+1|10/13|A|2A.1 Introduction to Probability
+1|10/14|B ER|2A.1 Introduction to Probability
+1|10/15|A|2A.2 Simulation
+1|10/16|B|2A.2 Simulation
+1|10/19|A|2A.3 Rules for Probability; Addition Rule
+1|10/20|B|2A.3 Rules for Probability; Addition Rule
+1|10/21|A|2A.4 Practice and Quiz
+1|10/22|B|2A.4 Practice and Quiz
+1|10/23|A|2A.5 Conditional Prob and Independence
+1|10/26|B|2A.5 Conditional Prob and Independence
+1|10/27|A|2A.6 Tree Diagrams
+1|10/28|B|2A.6 Tree Diagrams
+1|10/29|A|FLEX
+1|10/30|B|FLEX - End of Q1
+1|*|PSAT
+1|*|PreACT
+1|*|Picture Day
+1|*|Fall Pep Rally
+2|11/2|TWD|
+2|11/3|TWD|Election Day
+2|11/4|A|2A.7 Review
+2|11/5|B|2A.7 Review
+2|11/6|A|2A.8 Test
+2|11/9|B|2A.8 Test
+2|11/10|A|2B.1 Discrete and Continuous Random Var.
+2|11/11|HOL|Veterans Day
+2|11/12|B|2B.1 Discrete and Continuous Random Var.
+2|11/13|A|2B.2 Normal Distribution Empirical Rule
+2|11/16|B|2B.2 Normal Distribution Empirical Rule
+2|11/17|A|2B.3 Normal Distribution Calculations
+2|11/18|B|2B.3 Normal Distribution Calculations
+2|11/19|A|2B.4 Normal Dist Practice + Quiz
+2|11/20|B|2B.4 Normal Dist Practice + Quiz
+2|11/23|A|2B.5 Combining Random Var.
+2|11/24|B|2B.5 Combining Random Var.
+2|11/25|TWD|Thanksgiving
+2|11/26|HOL|Thanksgiving
+2|11/27|HOL|Thanksgiving
+2|11/30|A|2B.6 Binomial Distribution
+2|12/1|B|2B.6 Binomial Distribution
+2|12/2|A|2B.7 Conditions for Inference
+2|12/3|B|2B.7 Conditions for Inference
+2|12/4|A|2B.8 Review
+2|12/7|B|2B.8 Review
+2|12/8|A|FLEX
+2|12/9|B ER|FLEX
+2|12/10|A|2B.9 Test
+2|12/11|B|2B.9 Test
+2|12/14|A|5.1 Scatter Plots and Correlation + MT Review
+2|12/15|B|5.1 Scatter Plots and Correlation + MT Review
+2|12/16|A|5.2 Making Predictions + MT Review
+2|12/17|B|5.2 Making Predictions + MT Review
+2|12/18|A|5.3 Residual Plots + Coefficient of Det.
+2|12/21|TWD|WINTER BREAK
+2|12/22-1/1||WINTER BREAK
+2|1/4|B|5.3 Residual Plots + Coefficient of Det.
+2|1/5|A|Midterm Review (Units 1-5)
+2|1/6|B|Midterm Review (Units 1-5)
+2|1/7|A|Midterm Review (Units 1-5)
+2|1/8|B|Midterm Review (Units 1-5) | Block 1 (1A) Midterm
+2|1/11|A|Block 2 Midterm (2A & 2B) | Others: Unit 5 Project
+2|1/12|B|Block 3 Midterm (3B) | Others: Unit 5 Project
+2|1/13|A|Block 4 Midterm (4A & 4B) | Others: Unit 5 Project
+2|1/14|B|Exams (EOC priority)
+2|1/15|A|Exams (EOC priority)
+2|1/18|HOL|MLK Day
+2|1/19|B|Exams
+2|1/20|A|Exams
+2|1/21|B|Exam Make-Up - End of Q2
+2|1/22|TWD|
+2|*|Mental Health Summit
+2|*|Holiday Events
+2|*|Midterms early due to EOCs
+3|1/25|A|3A.1 Sampling Dist, Bias, Variability
+3|1/26|B|3A.1 Sampling Dist, Bias, Variability
+3|1/27|A|3A.2 Samp Dist and Diff Samp Dist Prop
+3|1/28|B|3A.2 Samp Dist and Diff Samp Dist Prop
+3|1/29|A|3A.3 Interpreting Conf Interval and Level
+3|2/1|B|3A.3 Interpreting Conf Interval and Level
+3|2/2|A|3A.4 Constructing Conf Interval for Prop
+3|2/3|B|3A.4 Constructing Conf Interval for Prop
+3|2/4|A|3A.5 5C Method CI for Prop
+3|2/5|B|3A.5 5C Method CI for Prop
+3|2/8|A|3A.6 Practice and Quiz
+3|2/9|B|3A.6 Practice and Quiz
+3|2/10|A|3A.7 CI for Difference of Prop
+3|2/11|B|3A.7 CI for Difference of Prop
+3|2/12|A|3A.8 Review
+3|2/15|TWD|Presidents Day
+3|2/16|B|3A.8 Review
+3|2/17|A|3A.9 Test
+3|2/18|B|3A.9 Test
+3|2/19|A|3B.1 Intro Hypothesis Tests
+3|2/22|B|3B.1 Intro Hypothesis Tests
+3|2/23|A|3B.2 Hypothesis Test for Prop
+3|2/24|B|3B.2 Hypothesis Test for Prop
+3|2/25|A|FLEX for ACT/DECA
+3|2/26|B|FLEX for ACT/DECA
+3|3/1|A|3B.3 Practice and Quiz
+3|3/2|B|3B.3 Practice and Quiz
+3|3/3|A|3B.4 Hyp Test Difference of Prop
+3|3/4|B|3B.4 Hyp Test Difference of Prop
+3|3/5|A|3B.5 Errors and Power
+3|3/8|B|3B.5 Errors and Power
+3|3/9|A|3B.6 Chi-Square Dist and Homogeneity
+3|3/10|B|3B.6 Chi-Square Dist and Homogeneity
+3|3/11|A|3B.7 Chi-Square Independence
+3|3/12|B|3B.7 Chi-Square Independence
+3|3/15|A|3B.8 Review
+3|3/16|B|3B.8 Review
+3|3/17|A|3B.9 Test
+3|3/18|B|3B.9 Test
+3|3/19|A|4.1 Sampling Distribution of Means
+3|3/22|B|4.1 Sampling Distribution of Means
+3|3/23|A|4.2 t Distribution and Conf. Interval for Mean
+3|3/24|B|4.2 t Distribution and Conf. Interval for Mean
+3|3/25|TWD|xx
+3|3/26 - 4/2||SPRING BREAK
+3|*|ACT
+3|*|Weather
+3|*|DECA
+4|4/5|A|4.3 Conf Int Diff Means and Mean Diff
+4|4/6|B|4.3 Conf Int Diff Means and Mean Diff
+4|4/7|A|4.4 Hypothesis Test Mean
+4|4/8|B|4.4 Hypothesis Test Mean
+4|4/9|A|4.5 Hypothesis Test Diff Mean and Mean Diff
+4|4/12|B|4.5 Hypothesis Test Diff Mean and Mean Diff
+4|4/13|A|4.6 Investigative ? and Choosing Procedure
+4|4/14|B|4.6 Investigative ? and Choosing Procedure
+4|4/15|A|4.7 Unit 4 Review
+4|4/16|B|4.7 Unit 4 Review
+4|4/19|A|4.8 Unit 4 Test
+4|4/20|B|4.8 Unit 4 Test
+4|4/21|A|AP Exam Review #1
+4|4/22|B|AP Exam Review #1
+4|4/23|A|AP Exam Review #2
+4|4/26|B|AP Exam Review #2
+4|4/27|A|AP Exam Review #3
+4|4/28|B ER|AP Exam Review #3
+4|4/29|A|AP Exam Review #4
+4|4/30|B|AP Exam Review #4
+4|5/3|A|AP Exams
+4|5/4|B|AP Exams
+4|5/5|A|AP Exams
+4|5/6|B|AP Exams
+4|5/7|A|AP Exams
+4|5/10|B|AP Exams
+4|5/11|A|AP Statistics Exam @ 12pm
+4|5/12|B|AP Exams
+4|5/13|A|AP Exams
+4|5/14|B|AP Exams
+4|5/17|A|After AP Exams
+4|5/18|B|After AP Exams
+4|5/19|A|After AP Exams
+4|5/20|B|After AP Exams
+4|5/21|A|After AP Exams
+4|5/24|B|After AP Exams
+4|5/25|A|After AP Exams
+4|5/26|B|After AP Exams
+4|5/27|A|After AP Exams
+4|5/28|B|After AP Exams
+4|5/31|HOL|Memorial Day
+4|6/1|A|Exams
+4|6/2|B|Exams
+4|6/3|A|Exams
+4|6/4|B|Exams
+4|6/7|A|Exams
+4|6/8|B|Exams
+4|6/9|A|Exams - End of Q4
+4|6/10|TWD|xx
+4|6/11|TWD|xx
+`;
+
+/* ===== Reading the data ===== */
+function parseCSV(text) {
+  const rows = []; let row = [], field = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; }
+      else field += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+    else if (c !== "\r") field += c;
+  }
+  if (field !== "" || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// Sheet layout: four quarters side by side, each with Date | Day | Topic | (blank)
+function recordsFromGrid(grid) {
+  const recs = [];
+  for (let qi = 0; qi < 4; qi++) {
+    const c = qi * 4; let notes = false;
+    for (let r = 1; r < grid.length; r++) {
+      const g = grid[r] || [];
+      const date = (g[c] || "").trim(), day = (g[c + 1] || "").trim(), topic = (g[c + 2] || "").trim();
+      if (/^Probable Instructional Impacts/i.test(topic)) { notes = true; continue; }
+      if (notes) { if (topic.startsWith("*")) recs.push({ q: qi + 1, note: topic.replace(/^\*\s*/, "") }); continue; }
+      if (date) recs.push({ q: qi + 1, date, day, topic });
+    }
+  }
+  return recs;
+}
+function recordsFromSaved(text) {
+  return text.trim().split("\n").map(line => {
+    const [q, date, day, ...rest] = line.split("|");
+    if (date === "*") return { q: +q, note: day };
+    return { q: +q, date, day, topic: rest.join("|") };
+  });
+}
+
+function mkDate(md) {
+  const [m, d] = md.split("/").map(n => parseInt(n, 10));
+  if (!m || !d) return null;
+  return new Date(m >= 7 ? SCHOOL_YEAR_START : SCHOOL_YEAR_START + 1, m - 1, d, 12);
+}
+const dayKey = d => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MO = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const fmt = d => `${WD[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`;
+const fmtLong = d => `${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getDay()]}, ${MO[d.getMonth()]} ${d.getDate()}`;
+
+function tagFor(topic) {
+  const t = topic.replace(/^\d[AB]?\.\d+\s+/, "");
+  if (/AP Statistics Exam/i.test(t)) return ["ap", "AP Exam"];
+  if (/Block \d.*Midterm/i.test(t)) return ["midterm", "Midterm"];
+  if (/Project Assessment/i.test(t)) return ["project", "Project"];
+  if (/(^|\s)Test$/i.test(t) && !/Hyp/i.test(t)) return ["test", "Test"];
+  if (/Quiz/i.test(t)) return ["quiz", "Quiz"];
+  if (/^Exams|Exam Make-Up/i.test(t)) return ["exams", "Exams"];
+  if (/Review/i.test(t)) return ["review", "Review"];
+  if (/^FLEX/i.test(t)) return ["flex", "Flex day"];
+  return null;
+}
+
+function build(recs) {
+  const notes = {};
+  const entries = [];
+  for (const r of recs) {
+    if (r.note) { (notes[r.q] = notes[r.q] || []).push(r.note); continue; }
+    const parts = r.date.split("-").map(s => s.trim());
+    const start = mkDate(parts[0]); if (!start) continue;
+    const end = parts[1] ? mkDate(parts[1]) : start;
+    const dayRaw = r.day.toUpperCase();
+    const letter = /^A/.test(dayRaw) ? "A" : /^B/.test(dayRaw) ? "B" : null;
+    let topic = r.topic === "xx" ? "" : r.topic;
+    const off = !letter;
+    if (off && !topic) topic = dayRaw === "HOL" ? "Holiday" : "Teacher workday";
+    entries.push({ start, end, letter, er: /ER/.test(dayRaw), off, kind: dayRaw, topic, q: r.q });
+  }
+  entries.sort((a, b) => a.start - b.start);
+
+  // Assign each day to a unit section
+  const sections = []; const byKey = {};
+  let cur = "1A";
+  for (const e of entries) {
+    const m = e.topic.match(/^(\d[AB]?)\.(\d+)\s+(.*)$/);
+    let key = cur;
+    if (!e.off) {
+      if (m) key = m[1];
+      else if (/After AP/i.test(e.topic) || (/^Exams/i.test(e.topic) && e.start.getMonth() >= 4)) key = "END";
+      else if (/AP Exam|AP Statistics Exam/i.test(e.topic)) key = "AP";
+      else if (/Midterm|^Exams|Exam Make-Up/i.test(e.topic)) key = "MID";
+      cur = key;
+    }
+    e.code = m ? `${m[1]}.${m[2]}` : "";
+    e.title = m ? m[3] : e.topic;
+    e.tag = e.off ? null : tagFor(e.topic);
+    if (!byKey[key]) { byKey[key] = { key, groups: [], lastOff: null }; sections.push(byKey[key]); }
+    const s = byKey[key];
+    if (e.off) {
+      const last = s.groups[s.groups.length - 1];
+      if (last && last.off && last.title === e.title && s.lastOff === last) last.items.push(e);
+      else { const g = { off: true, title: e.title, code: "", tag: null, items: [e] }; s.groups.push(g); s.lastOff = g; }
+    } else {
+      s.lastOff = null;
+      let g = s.groups.find(x => !x.off && x.topic === e.topic);
+      if (!g) { g = { off: false, topic: e.topic, title: e.title, code: e.code, tag: e.tag, items: [] }; s.groups.push(g); }
+      g.items.push(e);
+    }
+  }
+  for (const s of sections) s.groups.sort((a, b) => a.items[0].start - b.items[0].start);
+  return { entries, sections, notes };
+}
+
+/* ===== Rendering ===== */
+let DATA = null, PICK = "both";
+try { PICK = localStorage.getItem("apstats-pick") || "both"; } catch (e) {}
+const TODAY = (() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 12); })();
+const TK = dayKey(TODAY);
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const allDay = g => /Block \d|Exam/i.test(g.topic || "") && !/AP Exam Review/i.test(g.topic || "");
+
+function itemsFor(g) {
+  if (g.off || PICK === "both" || allDay(g)) return g.items;
+  return g.items.filter(i => i.letter === PICK);
+}
+function topicHTML(g, withTag = true) {
+  const parts = g.title.split("|").map(s => s.trim()).filter(Boolean);
+  const tag = withTag && g.tag ? `<span class="tag ${g.tag[0]}">${g.tag[1]}</span>` : "";
+  const code = g.code ? `<span class="lcode">${g.code}</span>` : "";
+  if (parts.length > 1) return `${code}${esc(parts[0])}${tag}<ul class="sub">${parts.slice(1).map(p => `<li>${esc(p)}</li>`).join("")}</ul>`;
+  return `${code}${esc(g.title)}${tag}`;
+}
+function badge(letter) { return letter ? `<span class="daybadge ${letter === "B" ? "b" : ""}" aria-label="${letter} day">${letter}</span>` : ""; }
+
+function renderToday() {
+  const el = document.getElementById("today");
+  const todays = DATA.entries.filter(e => dayKey(e.start) <= TK && TK <= dayKey(e.end));
+  const t = todays[0];
+  let head = `<div class="today-date">${fmtLong(TODAY)}`;
+  if (t && !t.off) head += ` · <b>${t.letter} day</b>${t.er ? " · Early release" : ""}`;
+  else if (t) head += ` · <b>No school</b> (${esc(t.title)})`;
+  else if (TODAY.getDay() === 0 || TODAY.getDay() === 6) head += ` · <b>Weekend</b>`;
+  head += `</div>`;
+
+  // A class day that matches the student's choice shows only today's lesson.
+  // Otherwise (weekend, holiday, or the other letter day) show their next class.
+  const classToday = t && !t.off && (PICK === "both" || t.letter === PICK || allDay({ topic: t.topic }));
+  const card = (e, label, isToday) => `<div class="next ${isToday ? "is-today" : ""}">
+      <div class="next-head">${badge(e.letter)} ${label}${e.er ? `<span class="tag er">Early release</span>` : ""}</div>
+      <div class="next-topic">${topicHTML({ title: e.title, code: e.code, tag: e.tag })}</div></div>`;
+  let body;
+  if (classToday) {
+    body = card(t, `Today's lesson`, true);
+  } else {
+    const nx = DATA.entries.find(e => !e.off && dayKey(e.start) > TK && (PICK === "both" || e.letter === PICK));
+    if (t && !t.off && PICK !== "both") head = head.replace("</div>", ` · <b>No ${PICK}-day class today</b></div>`);
+    body = nx ? card(nx, `Next class · ${fmt(nx.start)}`, false) : `<div class="empty">No more classes this year.</div>`;
+  }
+  el.innerHTML = head + `<div class="next-grid">${body}</div>`;
+}
+
+function renderAssess() {
+  const el = document.getElementById("assess");
+  const out = [];
+  for (const s of DATA.sections) for (const g of s.groups) {
+    if (!g.tag || !["test", "quiz", "midterm", "project", "ap"].includes(g.tag[0])) continue;
+    for (const i of itemsFor(g)) if (dayKey(i.start) >= TK) out.push({ i, g });
+  }
+  out.sort((a, b) => a.i.start - b.i.start);
+  const list = out.slice(0, PICK === "both" ? 6 : 4);
+  const pickPart = t => { const ps = t.split("|").map(x => x.trim()); return ps.find(x => /Midterm|Test|Quiz|Project|Exam/i.test(x)) || ps[0]; };
+  el.innerHTML = list.length ? list.map(({ i, g }) => `<li><span class="when">${allDay(g) ? "" : badge(i.letter)} ${fmt(i.start)}</span><span class="what">${topicHTML({ ...g, title: pickPart(g.title) })}</span></li>`).join("")
+    : `<li class="empty">Nothing scheduled.</li>`;
+}
+
+function datesHTML(g, items) {
+  if (g.off) {
+    const a = items[0].start, b = items[items.length - 1].end;
+    return `<div class="d">${dayKey(a) === dayKey(b) ? fmt(a) : `${fmt(a)} – ${fmt(b)}`}</div>`;
+  }
+  if (items.length > 4) return `<div class="d">${fmt(items[0].start)} – ${fmt(items[items.length - 1].start)}</div>`;
+  const showBadge = !allDay(g);
+  return items.map(i => `<div class="d">${showBadge ? badge(i.letter) : ""} ${fmt(i.start)}${i.er ? ` <span class="tag er" style="margin-left:0">ER</span>` : ""}</div>`).join("");
+}
+
+function renderUnits() {
+  const el = document.getElementById("units");
+  let openSet = false;
+  el.innerHTML = DATA.sections.map(s => {
+    const vis = s.groups.map(g => ({ g, items: itemsFor(g) })).filter(x => x.items.length);
+    if (!vis.length) return "";
+    const lessons = vis.filter(x => !x.g.off);
+    const lastKey = x => dayKey(x.items[x.items.length - 1].end);
+    const done = lessons.filter(x => lastKey(x) < TK).length;
+    const first = vis[0].items[0].start;
+    const last = vis.reduce((mx, x) => { const e = x.items[x.items.length - 1].end; return e > mx ? e : mx; }, first);
+    const isPast = dayKey(last) < TK;
+    let isCurrent = false;
+    if (!isPast && !openSet) { isCurrent = true; openSet = true; }
+    const rows = vis.map(({ g, items }) => {
+      const past = items.every(i => dayKey(i.end) < TK);
+      const now = items.some(i => dayKey(i.start) <= TK && TK <= dayKey(i.end));
+      const cls = ["row", g.off ? "off" : "", past ? "past" : "", now ? "now" : ""].join(" ");
+      const lead = past && !g.off ? `<span class="check" aria-label="done">✓</span>` : "";
+      const nowTag = now ? `<span class="tag now">Today</span>` : "";
+      return `<li class="${cls}"><div class="dates">${datesHTML(g, items)}</div><div class="topic">${lead}${g.off ? `No school · ${esc(g.title)}` : topicHTML(g)}${nowTag}</div></li>`;
+    }).join("");
+    const special = !!SPECIAL_LABEL[s.key];
+    const pct = lessons.length ? Math.round(100 * done / lessons.length) : 0;
+    return `<details class="unit ${special ? "special" : ""} ${isPast ? "done" : ""} ${isCurrent ? "current" : ""}" ${isCurrent ? "open" : ""} id="unit-${s.key}">
+      <summary>
+        <span class="ucode">${special ? SPECIAL_LABEL[s.key] : s.key}</span>
+        <span class="utitle"><strong>${special ? "" : "Unit " + s.key + ": "}${esc(UNIT_NAMES[s.key] || "")}</strong>
+          <small>${fmt(first)} – ${fmt(last)} · ${isPast ? "Finished" : `${done} of ${lessons.length} done`}</small>
+          <span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span></span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <ul class="rows">${rows}</ul></details>`;
+  }).join("");
+}
+
+function renderNotes(source) {
+  const qs = Object.keys(DATA.notes);
+  document.getElementById("notes").innerHTML = qs.length ? `<p><strong>Days that might shift:</strong> ${qs.map(q => `Q${q}: ${DATA.notes[q].map(esc).join(", ")}`).join(" · ")}. Check back if a lesson moves.</p>` : "";
+  document.getElementById("foot").textContent = source === "live"
+    ? "Dates come straight from the AP Stats pacing sheet and may change."
+    : "Dates may change. Check back often and listen for updates in class.";
+}
+
+function renderAll(source) {
+  document.querySelectorAll("[data-pick]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pick === PICK)));
+  renderToday(); renderAssess(); renderUnits(); renderNotes(source);
+}
+
+document.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => {
+  PICK = b.dataset.pick;
+  try { localStorage.setItem("apstats-pick", PICK); } catch (e) {}
+  renderAll(DATA.source);
+}));
+
+DATA = build(recordsFromSaved(SAVED)); DATA.source = "saved";
+renderAll("saved");
+
+if (SHEET_CSV_URL) {
+  fetch(SHEET_CSV_URL, { cache: "no-store" })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(t => {
+      const recs = recordsFromGrid(parseCSV(t));
+      if (recs.filter(r => !r.note).length < 50) throw new Error("sheet looks empty");
+      DATA = build(recs); DATA.source = "live"; renderAll("live");
+    })
+    .catch(() => {});
+}
+</script>
+</body>
+</html>
